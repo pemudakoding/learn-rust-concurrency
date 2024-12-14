@@ -90,4 +90,16 @@ mod tests {
 
         println!("Application finished");
     }
+
+    #[test]
+    fn test_closure() {
+        let name = String::from("Eko");
+        let closure = move || {
+            thread::sleep(Duration::from_secs(2));
+            println!("Hello, {}!", name);
+        };
+        
+        let handler = thread::spawn(closure);
+        handler.join().unwrap();
+    }
 }
