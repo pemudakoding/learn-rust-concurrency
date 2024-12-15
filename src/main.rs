@@ -224,4 +224,27 @@ mod tests {
         handle2.join().unwrap();
         handle3.join().unwrap();
     }
+    
+    static mut COUNTER: i32 = 0;
+    
+    #[test]
+    fn test_race_condition() {
+        let mut handles: Vec<JoinHandle<()>> = vec![];
+
+        for i in 0..10 {
+            let handle = thread::spawn(move || unsafe {
+                for i in 0..1000000 {
+                    COUNTER += 1;
+                }
+            });
+
+            handles.push(handle);
+        }
+        
+        for handle in handles {
+            handle.join().unwrap();
+        }
+        
+        println!("COUNTER : {}", unsafe {COUNTER});
+    }
 }
