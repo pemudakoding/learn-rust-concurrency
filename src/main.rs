@@ -128,11 +128,11 @@ mod tests {
         println!("Final result: {}", total);
         
     }
-    
+
     #[test]
     fn test_channel() {
         let (sender, receiver) = std::sync::mpsc::channel::<String>();
-        
+
         let handle1 = thread::spawn(move || {
             thread::sleep(Duration::from_secs(2));
             sender.send(String::from("Hello, World!")).unwrap();
@@ -142,7 +142,7 @@ mod tests {
             let message = receiver.recv().unwrap();
             println!("{}", message);
         });
-        
+
         handle1.join().unwrap();
         handle2.join().unwrap();
     }
@@ -156,17 +156,17 @@ mod tests {
                 thread::sleep(Duration::from_secs(2));
                 sender.send(String::from("Hello, World!")).unwrap();
             }
-            
+
             sender.send("Exit".to_string()).unwrap();
         });
 
         let handle2 = thread::spawn(move || loop {
             let message = receiver.recv().unwrap();
-            
+
             if message == "Exit" {
                 break;
             }
-            
+
             println!("{}", message);
         });
 
@@ -206,7 +206,7 @@ mod tests {
                 sender2.send(String::from("Hello, World! sender 2")).unwrap();
             }
         });
-        
+
         let handle1 = thread::spawn(move || {
             for _ in 0..5 {
                 thread::sleep(Duration::from_secs(2));
@@ -224,9 +224,9 @@ mod tests {
         handle2.join().unwrap();
         handle3.join().unwrap();
     }
-    
+
     static mut COUNTER: i32 = 0;
-    
+
     #[test]
     fn test_race_condition() {
         let mut handles: Vec<JoinHandle<()>> = vec![];
@@ -240,11 +240,36 @@ mod tests {
 
             handles.push(handle);
         }
-        
+
         for handle in handles {
             handle.join().unwrap();
         }
-        
+
         println!("COUNTER : {}", unsafe {COUNTER});
+    }
+
+    #[test]
+    fn test_atomic() {
+        use std::sync::atomic::{AtomicI32, Ordering};
+        
+        static counter: AtomicI32 = AtomicI32::new(0);
+        
+        let mut handles: Vec<JoinHandle<()>> = vec![];
+
+        for i in 0..10 {
+            let handle = thread::spawn(move || {
+                for i in 0..1000000 {
+                    counter.fetch_add(1, Ordering::Relaxed);
+                }
+            });
+
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        println!("COUNTER : {}", counter.load(Ordering::Relaxed));
     }
 }
