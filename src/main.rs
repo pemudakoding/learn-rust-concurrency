@@ -7,6 +7,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::MutexGuard;
     use std::thread;
     use std::thread::JoinHandle;
     use std::time::Duration;
@@ -299,5 +300,34 @@ mod tests {
         }
 
         println!("COUNTER : {}", counter.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn test_mutex() {
+        use std::sync::{
+            Arc,
+            Mutex
+        };
+
+        let counter: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
+        let mut handles: Vec<JoinHandle<()>> = vec![];
+
+        for i in 0..10 {
+            let counter_clone = Arc::clone(&counter);
+            let handle = thread::spawn(move || {
+                for i in 0..1000000 {
+                   let mut data: MutexGuard<i32> = counter_clone.lock().unwrap();
+                    *data += 1;
+                }
+            });
+
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        println!("COUNTER : {}", *counter.lock().unwrap());
     }
 }
