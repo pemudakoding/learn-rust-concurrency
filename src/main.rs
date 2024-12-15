@@ -128,4 +128,100 @@ mod tests {
         println!("Final result: {}", total);
         
     }
+    
+    #[test]
+    fn test_channel() {
+        let (sender, receiver) = std::sync::mpsc::channel::<String>();
+        
+        let handle1 = thread::spawn(move || {
+            thread::sleep(Duration::from_secs(2));
+            sender.send(String::from("Hello, World!")).unwrap();
+        });
+
+        let handle2 = thread::spawn(move || {
+            let message = receiver.recv().unwrap();
+            println!("{}", message);
+        });
+        
+        handle1.join().unwrap();
+        handle2.join().unwrap();
+    }
+
+    #[test]
+    fn test_channel_queue() {
+        let (sender, receiver) = std::sync::mpsc::channel::<String>();
+
+        let handle1 = thread::spawn(move || {
+            for _ in 0..5 {
+                thread::sleep(Duration::from_secs(2));
+                sender.send(String::from("Hello, World!")).unwrap();
+            }
+            
+            sender.send("Exit".to_string()).unwrap();
+        });
+
+        let handle2 = thread::spawn(move || loop {
+            let message = receiver.recv().unwrap();
+            
+            if message == "Exit" {
+                break;
+            }
+            
+            println!("{}", message);
+        });
+
+        handle1.join().unwrap();
+        handle2.join().unwrap();
+    }
+
+    #[test]
+    fn test_channel_iterator() {
+        let (sender, receiver) = std::sync::mpsc::channel::<String>();
+
+        let handle1 = thread::spawn(move || {
+            for _ in 0..5 {
+                thread::sleep(Duration::from_secs(2));
+                sender.send(String::from("Hello, World!")).unwrap();
+            }
+        });
+
+        let handle2 = thread::spawn(move || {
+           for value in receiver.iter() {
+               println!("{}", value);
+           }
+        });
+
+        handle1.join().unwrap();
+        handle2.join().unwrap();
+    }
+
+    #[test]
+    fn test_channel_multi_sender() {
+        let (sender, receiver) = std::sync::mpsc::channel::<String>();
+        let sender2 = sender.clone();
+
+        let handle3 = thread::spawn(move || {
+            for _ in 0..5 {
+                thread::sleep(Duration::from_secs(1));
+                sender2.send(String::from("Hello, World! sender 2")).unwrap();
+            }
+        });
+        
+        let handle1 = thread::spawn(move || {
+            for _ in 0..5 {
+                thread::sleep(Duration::from_secs(2));
+                sender.send(String::from("Hello, World! sender 1")).unwrap();
+            }
+        });
+
+        let handle2 = thread::spawn(move || {
+            for value in receiver.iter() {
+                println!("{}", value);
+            }
+        });
+
+        handle1.join().unwrap();
+        handle2.join().unwrap();
+        handle3.join().unwrap();
+    }
 }
